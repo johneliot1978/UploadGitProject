@@ -2,12 +2,14 @@
 import os
 import sys
 import github
+import re
 
 # GitHub credentials
 GITHUB_TOKEN = "your_token_here"
 GITHUB_USERNAME = "your_username_here"
 COMMITTER_NAME = "your_commit_name_here"
 COMMITTER_EMAIL = "your_commit_email_here"
+
 
 def create_git_repo(folder_name):
     # Change directory to the specified folder
@@ -21,23 +23,36 @@ def create_git_repo(folder_name):
 
 def get_repo_description(script_file):
     description = "Default repository description"
+    
     with open(script_file, 'r', encoding='utf-8') as file:
         lines = file.readlines()
-        for line in lines:
-            if line.startswith("# Description:"):
-                description = line.strip()
-                break
+
+        # Handle Python files
+        if script_file.endswith('.py'):
+            for line in lines:
+                if line.startswith("# Description:"):
+                    description = line.strip()
+                    break
+        
+        # Handle HTML files
+        elif script_file.endswith('.html'):
+            for line in lines:
+                match = re.match(r'<!--\s*Description:\s*(.*?)\s*-->', line)
+                if match:
+                    description = match.group(1).strip()
+                    break
+
     return description
 
 def find_script_file(folder_name):
-    # Search for Python script files (*.py) within the specified folder
+    # Search for Python or HTML script files within the specified folder
     for file in os.listdir(folder_name):
-        if file.endswith('.py'):
+        if file.endswith('.py') or file.endswith('.html'):
             return os.path.join(folder_name, file)
     return None
 
 def create_readme(description, folder_name):
-    # Remove leading '#' from the description
+    # Remove leading '#' from the description (for Python files)
     description = description.lstrip("#").strip()
     
     readme_content = f"""
@@ -98,10 +113,10 @@ if __name__ == "__main__":
     # Create a new Git repository or reinitialize existing one
     create_git_repo(folder_path)
 
-    # Find the script file within the specified folder
+    # Find the script file within the specified folder (either Python or HTML)
     script_file = find_script_file(folder_path)
     if script_file is None:
-        print(f"No Python script file found in the '{folder_name}' folder.")
+        print(f"No Python or HTML script file found in the '{folder_name}' folder.")
         sys.exit(1)
 
     # Extract repository description from the script file
